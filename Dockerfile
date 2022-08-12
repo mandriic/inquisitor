@@ -2,8 +2,8 @@ FROM kalilinux/kali-rolling
 RUN apt update && apt install -y openssh-server\
     && apt install -y sudo && apt install nano\
     && apt install net-tools && apt install -y vsftpd\
-    && apt install -y gcc && apt install -y make && apt install -y zlib1g zlib1g-dev ftp traceroute
-RUN useradd -m -p '$1$M0Ld1W6K$V6mxfJ3LBT71EE/V3.0cX/' sshcls
+    && apt install -y gcc && apt install -y make && apt install -y zlib1g zlib1g-dev ftp traceroute nmap
+RUN useradd -m -p '$1$M0Ld1W6K$V6mxfJ3LBT71EE/V3.0cX/' -s /bin/bash sshcls
 RUN usermod -aG sudo sshcls
 COPY . /home/sshcls
 RUN tar -xvf /home/sshcls/Python-3.7.12.tgz

